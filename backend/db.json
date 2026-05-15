@@ -1,0 +1,93 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Administrador",
+      "email": "admin@imobiliaria.com",
+      "password": "$2b$10$gwW98uFMijQKL6sYs50XCuMzXejLaKK.l/dbv0W3iWf6mV7p7e9vS",
+      "phone": "(11) 99999-9999",
+      "description": "Corretor principal",
+      "photo": ""
+    },
+    {
+      "id": 1778797196138,
+      "name": "Test",
+      "email": "test@test.com",
+      "password": "$2b$10$CkyhO8O4.0wVLSLBcR/uDOgM71VdMD0LZDItmnn7Sjvf0nMbRFBiC",
+      "phone": "",
+      "description": "",
+      "photo": ""
+    },
+    {
+      "id": 1778797656400,
+      "name": "Test",
+      "email": "2test@test.com",
+      "password": "$2b$10$notmdq4N.1YZjTMZGkZzAu/PiuJlPoc01t/UtG2n4fd1PwtR2UAna",
+      "phone": "",
+      "description": "",
+      "photo": ""
+    }
+  ],
+  "clients": [
+    {
+      "id": 1778799280901,
+      "name": "Renan",
+      "phone": "21973745455",
+      "email": "renan.genesisgt724532@gmail.com",
+      "familyMembers": 3,
+      "hasPets": true,
+      "propertyType": "house",
+      "firstServiceDate": "2026-05-14T22:54:40.509Z",
+      "createdBy": 1778797196138,
+      "lastAttendedBy": "Test",
+      "chosenProperty": "Test",
+      "visitDate": "20250520"
+    },
+    {
+      "id": 1778872592084,
+      "name": "Michelli",
+      "phone": "21977889966",
+      "email": "michelli@test.com",
+      "familyMembers": 2,
+      "hasPets": false,
+      "propertyType": "apartment",
+      "firstServiceDate": "2026-05-15T19:16:30.728Z",
+      "createdBy": 1778797196138
+    },
+    {
+      "id": 1778872659046,
+      "name": "Valentina ",
+      "phone": "21933445566",
+      "email": "Val@test.com",
+      "familyMembers": 1,
+      "hasPets": true,
+      "propertyType": "apartment",
+      "firstServiceDate": "2026-05-15T19:17:37.753Z",
+      "createdBy": 1778797196138
+    }
+  ],
+  "appointments": [
+    {
+      "id": 1778868892610,
+      "clientName": "Renan",
+      "date": "20250525",
+      "time": "1020",
+      "clientId": 0,
+      "createdBy": 1778797196138
+    }
+  ],
+  "properties": [
+    {
+      "id": 1778868973737,
+      "streetName": "Test",
+      "location": "Rua test",
+      "price": 130000
+    },
+    {
+      "id": 1778870856835,
+      "streetName": "2test",
+      "location": "2test ",
+      "price": 200000
+    }
+  ]
+}

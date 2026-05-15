@@ -1,0 +1,15 @@
+realestate-app/
+├── backend/
+│   ├── models/
+│   ├── routes/
+│   ├── controllers/
+│   ├── middleware/
+│   └── server.js
+└── frontend/
+    ├── src/
+    │   ├── screens/
+    │   ├── components/
+    │   ├── context/
+    │   ├── services/
+    │   └── navigation/
+    └── App.tsx
