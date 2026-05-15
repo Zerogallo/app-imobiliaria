@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, FlatList, StyleSheet,
-  RefreshControl, Alert, Modal, TouchableWithoutFeedback
+  RefreshControl, Alert, Modal, TouchableWithoutFeedback, Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import api from '../services/api';
@@ -26,6 +26,9 @@ interface Property {
   streetName: string;
   location: string;
   price: number;
+  photo?: string;
+  status?: string;
+  propertyType?: string;
 }
 
 export default function Home() {
@@ -46,9 +49,7 @@ export default function Home() {
         api.get('/properties')
       ]);
       setTodayAppointments(appointmentsRes.data);
-      // Últimos 5 clientes (mais recentes primeiro)
       setRecentClients(clientsRes.data.slice(0, 5));
-      // Últimos 5 imóveis
       setRecentProperties(propertiesRes.data.slice(0, 5));
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -80,6 +81,18 @@ export default function Home() {
     if (option === 'imovel') navigation.navigate('NewProperty');
   };
 
+  const getStatusInfo = (status?: string) => {
+    switch (status) {
+      case 'vendido':
+        return { icon: '💰', text: 'Vendido', color: '#e74c3c' };
+      case 'alugado':
+        return { icon: '🔑', text: 'Alugado', color: '#f39c12' };
+      default:
+        return { icon: '✅', text: 'Disponível', color: '#27ae60' };
+    }
+  };
+
+  // Renderiza card de cliente (horizontal)
   const renderClientItem = ({ item }: { item: Client }) => (
     <TouchableOpacity style={styles.horizontalCard} onPress={() => navigation.navigate('EditClient', { client: item, refresh: fetchData })}>
       <Text style={styles.horizontalTitle}>{item.name}</Text>
@@ -88,13 +101,31 @@ export default function Home() {
     </TouchableOpacity>
   );
 
-  const renderPropertyItem = ({ item }: { item: Property }) => (
-    <TouchableOpacity style={styles.horizontalCard} onPress={() => navigation.navigate('EditProperty', { property: item, refresh: fetchData })}>
-      <Text style={styles.horizontalTitle}>{item.streetName}</Text>
-      <Text style={styles.horizontalSub}>{item.location}</Text>
-      <Text style={styles.priceText}>💰 R$ {item.price.toLocaleString()}</Text>
-    </TouchableOpacity>
-  );
+  // Renderiza card de imóvel (horizontal COM IMAGEM)
+  const renderPropertyItem = ({ item }: { item: Property }) => {
+    const statusInfo = getStatusInfo(item.status);
+    return (
+      <TouchableOpacity style={styles.propertyCard} onPress={() => navigation.navigate('EditProperty', { property: item, refresh: fetchData })}>
+        {item.photo ? (
+          <Image source={{ uri: item.photo }} style={styles.propertyImage} />
+        ) : (
+          <View style={styles.propertyImagePlaceholder}>
+            <Text style={styles.propertyImagePlaceholderText}>🏠</Text>
+          </View>
+        )}
+        <View style={styles.propertyInfo}>
+          <Text style={styles.propertyTitle} numberOfLines={1}>{item.streetName}</Text>
+          <Text style={styles.propertySub} numberOfLines={1}>{item.location}</Text>
+          <Text style={styles.propertyPrice}>💰 R$ {item.price.toLocaleString()}</Text>
+          <View style={[styles.propertyStatus, { backgroundColor: statusInfo.color + '20' }]}>
+            <Text style={[styles.propertyStatusText, { color: statusInfo.color }]}>
+              {statusInfo.icon} {statusInfo.text}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -132,7 +163,7 @@ export default function Home() {
         contentContainerStyle={styles.horizontalList}
       />
 
-      {/* Últimos imóveis (horizontal) */}
+      {/* Últimos imóveis (horizontal COM IMAGEM) */}
       <Text style={styles.sectionTitle}>🏠 Novos Imóveis (últimos 5)</Text>
       <FlatList
         horizontal
@@ -184,12 +215,28 @@ const styles = StyleSheet.create({
   time: { fontSize: 14, color: '#7f8c8d', marginTop: 4 },
   empty: { textAlign: 'center', color: '#95a5a6', marginTop: 20, fontSize: 16 },
   horizontalList: { paddingRight: 16 },
+  
+  // Cards de cliente (sem imagem)
   horizontalCard: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginRight: 12, width: 160, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   horizontalTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
   horizontalSub: { fontSize: 12, color: '#7f8c8d' },
   horizontalDate: { fontSize: 10, color: '#95a5a6', marginTop: 4 },
-  priceText: { fontSize: 12, fontWeight: 'bold', color: '#27ae60', marginTop: 4 },
+  
+  // Cards de imóvel COM IMAGEM
+  propertyCard: { backgroundColor: '#fff', borderRadius: 12, marginRight: 12, width: 200, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  propertyImage: { width: '100%', height: 120, resizeMode: 'cover' },
+  propertyImagePlaceholder: { width: '100%', height: 120, backgroundColor: '#ecf0f1', justifyContent: 'center', alignItems: 'center' },
+  propertyImagePlaceholderText: { fontSize: 40, color: '#bdc3c7' },
+  propertyInfo: { padding: 10 },
+  propertyTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 2 },
+  propertySub: { fontSize: 12, color: '#7f8c8d', marginBottom: 4 },
+  propertyPrice: { fontSize: 13, fontWeight: 'bold', color: '#27ae60', marginBottom: 6 },
+  propertyStatus: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  propertyStatusText: { fontSize: 10, fontWeight: 'bold' },
+  
   emptyHorizontal: { textAlign: 'center', color: '#95a5a6', fontSize: 14, marginLeft: 16 },
+  
+  // Menu flutuante
   fab: { position: 'absolute', bottom: 20, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#2980b9', justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3 },
   fabText: { fontSize: 32, color: '#fff', fontWeight: 'bold', marginTop: -4 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
