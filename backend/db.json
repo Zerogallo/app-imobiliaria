@@ -81,7 +81,12 @@
       "id": 1778868973737,
       "streetName": "Test",
       "location": "Rua test",
-      "price": 130000
+      "price": 130000,
+      "bedrooms": 0,
+      "bathrooms": 0,
+      "livingRoom": true,
+      "area": 0,
+      "photo": "https://github.com/Zerogallo/Cart-o-de-embarque/blob/main/src/assets/Lucid.jpg"
     },
     {
       "id": 1778870856835,
