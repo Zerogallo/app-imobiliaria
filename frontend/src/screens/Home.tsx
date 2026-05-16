@@ -4,6 +4,7 @@ import {
   RefreshControl, Alert, Modal, TouchableWithoutFeedback, Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,6 +13,8 @@ interface Appointment {
   clientName: string;
   time: string;
   date: string;
+  notes?: string;
+  status?: string;
 }
 
 interface Client {
@@ -32,7 +35,7 @@ interface Property {
 }
 
 export default function Home() {
-  const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
+  const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([]);
   const [recentClients, setRecentClients] = useState<Client[]>([]);
   const [recentProperties, setRecentProperties] = useState<Property[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,13 +45,20 @@ export default function Home() {
 
   const fetchData = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
       const [appointmentsRes, clientsRes, propertiesRes] = await Promise.all([
-        api.get(`/appointments?date=${today}`),
+        api.get('/appointments'),
         api.get('/clients'),
         api.get('/properties')
       ]);
-      setTodayAppointments(appointmentsRes.data);
+      
+      // Ordena por data e hora (mais recentes primeiro) e pega os 5 primeiros
+      const sortedAppointments = appointmentsRes.data.sort((a: Appointment, b: Appointment) => {
+        const dateA = new Date(`${a.date}T${a.time}`);
+        const dateB = new Date(`${b.date}T${b.time}`);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      setRecentAppointments(sortedAppointments.slice(0, 5));
       setRecentClients(clientsRes.data.slice(0, 5));
       setRecentProperties(propertiesRes.data.slice(0, 5));
     } catch (error) {
@@ -83,6 +93,28 @@ export default function Home() {
 
   const getStatusInfo = (status?: string) => {
     switch (status) {
+      case 'confirmado':
+        return { icon: 'checkmark-circle', color: '#27ae60', text: 'Confirmado' };
+      case 'cancelado':
+        return { icon: 'close-circle', color: '#e74c3c', text: 'Cancelado' };
+      case 'realizado':
+        return { icon: 'checkmark-done-circle', color: '#2980b9', text: 'Realizado' };
+      default:
+        return { icon: 'time', color: '#f39c12', text: 'Agendado' };
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const getStatusInfoForProperty = (status?: string) => {
+    switch (status) {
       case 'vendido':
         return { icon: '💰', text: 'Vendido', color: '#e74c3c' };
       case 'alugado':
@@ -92,7 +124,41 @@ export default function Home() {
     }
   };
 
-  // Renderiza card de cliente (horizontal)
+  // Card de compromisso (agenda)
+  const renderAppointmentItem = ({ item }: { item: Appointment }) => {
+    const statusInfo = getStatusInfo(item.status);
+    return (
+      <TouchableOpacity 
+        style={styles.appointmentCard} 
+        onPress={() => navigation.navigate('EditAppointment', { appointment: item, refresh: fetchData })}
+      >
+        <View style={styles.appointmentHeader}>
+          <View style={styles.appointmentClient}>
+            <Ionicons name="person-circle" size={20} color="#2980b9" />
+            <Text style={styles.appointmentClientName}>{item.clientName}</Text>
+          </View>
+          <View style={[styles.appointmentStatus, { backgroundColor: statusInfo.color + '20' }]}>
+            <Ionicons name={statusInfo.icon as any} size={10} color={statusInfo.color} />
+            <Text style={[styles.appointmentStatusText, { color: statusInfo.color }]}>
+              {statusInfo.text}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.appointmentDetails}>
+          <View style={styles.appointmentDetail}>
+            <Ionicons name="calendar" size={12} color="#7f8c8d" />
+            <Text style={styles.appointmentDetailText}>{formatDate(item.date)}</Text>
+          </View>
+          <View style={styles.appointmentDetail}>
+            <Ionicons name="time" size={12} color="#7f8c8d" />
+            <Text style={styles.appointmentDetailText}>{item.time}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Card de cliente
   const renderClientItem = ({ item }: { item: Client }) => (
     <TouchableOpacity style={styles.horizontalCard} onPress={() => navigation.navigate('EditClient', { client: item, refresh: fetchData })}>
       <Text style={styles.horizontalTitle}>{item.name}</Text>
@@ -101,9 +167,9 @@ export default function Home() {
     </TouchableOpacity>
   );
 
-  // Renderiza card de imóvel (horizontal COM IMAGEM)
+  // Card de imóvel
   const renderPropertyItem = ({ item }: { item: Property }) => {
-    const statusInfo = getStatusInfo(item.status);
+    const statusInfo = getStatusInfoForProperty(item.status);
     return (
       <TouchableOpacity style={styles.propertyCard} onPress={() => navigation.navigate('EditProperty', { property: item, refresh: fetchData })}>
         {item.photo ? (
@@ -136,22 +202,17 @@ export default function Home() {
         </TouchableOpacity>
       </View>
 
-      {/* Atendimentos de hoje (lista vertical) */}
-      <Text style={styles.sectionTitle}>📅 Atendimentos de Hoje</Text>
+      {/* Últimos compromissos da agenda */}
+      <Text style={styles.sectionTitle}>📋 Últimos Compromissos (últimos 5)</Text>
       <FlatList
-        data={todayAppointments}
+        data={recentAppointments}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListEmptyComponent={<Text style={styles.empty}>Nenhum atendimento hoje</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.clientName}>{item.clientName}</Text>
-            <Text style={styles.time}>⏰ {item.time}</Text>
-          </View>
-        )}
+        ListEmptyComponent={<Text style={styles.empty}>Nenhum compromisso agendado</Text>}
+        renderItem={renderAppointmentItem}
       />
 
-      {/* Últimos clientes (horizontal) */}
+      {/* Últimos clientes */}
       <Text style={styles.sectionTitle}>🆕 Novos Clientes (últimos 5)</Text>
       <FlatList
         horizontal
@@ -163,7 +224,7 @@ export default function Home() {
         contentContainerStyle={styles.horizontalList}
       />
 
-      {/* Últimos imóveis (horizontal COM IMAGEM) */}
+      {/* Últimos imóveis */}
       <Text style={styles.sectionTitle}>🏠 Novos Imóveis (últimos 5)</Text>
       <FlatList
         horizontal
@@ -175,7 +236,7 @@ export default function Home() {
         contentContainerStyle={styles.horizontalList}
       />
 
-      {/* Botão flutuante + menu */}
+      {/* Botão flutuante */}
       <TouchableOpacity style={styles.fab} onPress={() => setMenuVisible(true)}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
@@ -210,22 +271,99 @@ const styles = StyleSheet.create({
   welcome: { fontSize: 22, fontWeight: 'bold', color: '#2c3e50' },
   logoutText: { color: '#e74c3c', fontWeight: 'bold', fontSize: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8, color: '#34495e' },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  clientName: { fontSize: 16, fontWeight: 'bold' },
-  time: { fontSize: 14, color: '#7f8c8d', marginTop: 4 },
   empty: { textAlign: 'center', color: '#95a5a6', marginTop: 20, fontSize: 16 },
   horizontalList: { paddingRight: 16 },
+  emptyHorizontal: { textAlign: 'center', color: '#95a5a6', fontSize: 14, marginLeft: 16 },
   
-  // Cards de cliente (sem imagem)
-  horizontalCard: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginRight: 12, width: 160, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  // Card de compromisso (agenda)
+  appointmentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  appointmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  appointmentClient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  appointmentClientName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  appointmentStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    gap: 3,
+  },
+  appointmentStatusText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  appointmentDetails: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  appointmentDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  appointmentDetailText: {
+    fontSize: 11,
+    color: '#7f8c8d',
+  },
+  
+  // Cards de cliente
+  horizontalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 12,
+    width: 160,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   horizontalTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
   horizontalSub: { fontSize: 12, color: '#7f8c8d' },
   horizontalDate: { fontSize: 10, color: '#95a5a6', marginTop: 4 },
   
-  // Cards de imóvel COM IMAGEM
-  propertyCard: { backgroundColor: '#fff', borderRadius: 12, marginRight: 12, width: 200, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  // Cards de imóvel
+  propertyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginRight: 12,
+    width: 200,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   propertyImage: { width: '100%', height: 120, resizeMode: 'cover' },
-  propertyImagePlaceholder: { width: '100%', height: 120, backgroundColor: '#ecf0f1', justifyContent: 'center', alignItems: 'center' },
+  propertyImagePlaceholder: {
+    width: '100%',
+    height: 120,
+    backgroundColor: '#ecf0f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   propertyImagePlaceholderText: { fontSize: 40, color: '#bdc3c7' },
   propertyInfo: { padding: 10 },
   propertyTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 2 },
@@ -234,10 +372,23 @@ const styles = StyleSheet.create({
   propertyStatus: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   propertyStatusText: { fontSize: 10, fontWeight: 'bold' },
   
-  emptyHorizontal: { textAlign: 'center', color: '#95a5a6', fontSize: 14, marginLeft: 16 },
-  
   // Menu flutuante
-  fab: { position: 'absolute', bottom: 20, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#2980b9', justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3 },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2980b9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
   fabText: { fontSize: 32, color: '#fff', fontWeight: 'bold', marginTop: -4 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   menuContainer: { backgroundColor: '#fff', borderRadius: 12, width: '80%', overflow: 'hidden', elevation: 5 },

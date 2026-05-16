@@ -70,17 +70,32 @@
     {
       "id": 1778868892610,
       "clientName": "Renan",
-      "date": "20250525",
-      "time": "1020",
+      "date": "2026-05-21",
+      "time": "21:00",
       "clientId": 0,
-      "createdBy": 1778797196138
+      "createdBy": 1778797196138,
+      "notes": "Visita apartamento ",
+      "status": "agendado"
     },
     {
       "id": 1778881307636,
       "clientName": "Test ",
-      "date": "20260515",
-      "time": "2200",
+      "date": "2026-12-19",
+      "time": "12:00",
       "clientId": 0,
+      "createdBy": 1778797196138,
+      "notes": "Na loja",
+      "status": "confirmado"
+    },
+    {
+      "id": 1778947003844,
+      "clientId": 1778872659046,
+      "clientName": "Valentina ",
+      "date": "2026-05-16",
+      "time": "12:55",
+      "notes": "Visita na casa",
+      "status": "agendado",
+      "createdAt": "2026-05-16T15:56:40.920Z",
       "createdBy": 1778797196138
     }
   ],
